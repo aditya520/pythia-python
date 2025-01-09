@@ -85,6 +85,10 @@ class PriceService:
         self.hermes_client = HermesClient(base_url=os.getenv('HERMES_API_BASE_URL'))
         self.openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         self.price_feeds = self.hermes_client.get_price_feeds()
+        self.tickers = []
+        for feed in self.price_feeds:
+            if "base" in feed["attributes"]:
+                self.tickers.append(feed["attributes"]["base"])
     
     def process_tickers(self, tickers: List[str]) -> List[PriceFeed]:
         """Process tickers and return corresponding price feeds."""
@@ -129,7 +133,7 @@ class PriceService:
                     time=datetime.fromtimestamp(
                         price["price"]["publish_time"],
                         tz=pytz.UTC
-                    ).astimezone(pytz.timezone('America/New_York')).strftime("%B %d, %Y %I:%M %p %Z")
+                    ).astimezone(pytz.timezone('America/New_York')).strftime("%Y-%m-%d %I:%M %p %Z")
                 )
                 for price in response_data["parsed"]
             ]
@@ -148,8 +152,9 @@ class PriceService:
 
         Analyze the following message:
         1. Determine if it's asking for a price. Reply in True/False. Please make sure with capital first letter.
-        2. If yes, extract the symbols/tickers mentioned and convert them to proper format.
-        3. If no, provide a friendly response to continue the conversation.
+        2. If yes, extract the symbols/tickers mentioned and convert them to proper format. Please use {self.tickers} list to match the tickers. Please analyze every word correctly as messages may contain spelling errors.
+        3. Use {self.tickers} list to return the tickers in the response. Find the closest match in the list.
+        4. If no, provide a friendly response to continue the conversation.
 
         Message: "{message}"
 
